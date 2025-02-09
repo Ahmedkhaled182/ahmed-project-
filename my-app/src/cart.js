@@ -1,42 +1,56 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import './cart.css';
 
 function CartPage({ userId, navigateTo }) {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchCartItems = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`http://localhost:555/cart?userId=${userId}`);
-      const data = await response.json();
-      setCartItems(data);
-    } catch (error) {
-      console.error('Error fetching cart items:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
   useEffect(() => {
+    const fetchCartItems = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`http://localhost:555/cart`, {
+          method: 'GET',
+          credentials: 'include', // 🔥 Sends auth cookies for authentication
+        });
+        if (!response.ok) throw new Error('Failed to fetch cart');
+        const data = await response.json();
+        setCartItems(data);
+      } catch (error) {
+        console.error('Error fetching cart items:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchCartItems();
-  }, [fetchCartItems]);
+  }, [userId]); // ✅ Dependency is correct
 
   const clearCart = async () => {
     try {
-      await fetch(`http://localhost:555/cart/clear`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId }),
-      });
-      setCartItems([]);
-      alert('Cart cleared.');
+        console.log('Attempting to clear cart...'); // 🔥 Debugging
+
+        const response = await fetch(`http://localhost:555/cart/clear`, {
+            method: 'DELETE',
+            credentials: 'include', // ✅ Ensures auth token is sent
+        });
+
+        console.log('Clear cart response status:', response.status); // 🔥 Debugging
+
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Failed to clear cart: ${errorData}`);
+        }
+
+        console.log('Cart cleared successfully');
+        setCartItems([]); // ✅ Update state to reflect cleared cart
+        alert('Cart cleared.');
     } catch (error) {
-      console.error('Error clearing cart:', error);
+        console.error('Error clearing cart:', error.message);
     }
-  };
+};
+
+
 
   return (
     <div className="cart-page">

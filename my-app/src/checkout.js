@@ -5,15 +5,21 @@ function CheckoutPage({ userId, navigateTo }) {
   const [cartItems, setCartItems] = useState([]);
   const [total, setTotal] = useState(0);
 
-  // Fetch cart items on page load
+  // ✅ Fetch cart items with authentication
   useEffect(() => {
     const fetchCartItems = async () => {
       try {
-        const response = await fetch(`http://localhost:555/cart?userId=${userId}`);
+        const response = await fetch(`http://localhost:555/cart`, {
+          method: 'GET',
+          credentials: 'include', // 🔥 Ensures the authToken is sent
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch cart');
+
         const data = await response.json();
         setCartItems(data);
 
-        // Calculate total
+        // ✅ Recalculate total
         const totalAmount = data.reduce((acc, item) => acc + item.PRICE * item.QUANTITY, 0);
         setTotal(totalAmount);
       } catch (error) {
@@ -22,26 +28,35 @@ function CheckoutPage({ userId, navigateTo }) {
     };
 
     fetchCartItems();
-  }, [userId]);
+  }, [userId]); // ✅ Keeps dependency unchanged
 
   const completePurchase = async () => {
     try {
       const response = await fetch(`http://localhost:555/checkout`, {
         method: 'POST',
+        credentials: 'include', // 🔥 Ensures token is sent for authentication
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, cartItems }),
+        body: JSON.stringify({ cartItems }), // ✅ No need to send userId (backend gets it from token)
       });
 
-      if (response.ok) {
-        alert('Purchase completed successfully!');
-        navigateTo('home'); // Redirect to homepage after purchase
-      } else {
-        alert('Failed to complete the purchase.');
+      if (!response.ok) {
+        throw new Error('Failed to complete purchase.');
       }
+
+      alert('Purchase completed successfully!');
+      
+      // ✅ Clear cart after purchase
+      setCartItems([]);
+      setTotal(0);
+      
+      // ✅ Redirect to homepage
+      navigateTo('home');
+
     } catch (error) {
       console.error('Error completing purchase:', error);
+      alert(error.message);
     }
   };
 

@@ -1,4 +1,5 @@
 const sqlite = require('sqlite3');
+const bcrypt = require('bcrypt');
 const db = new sqlite.Database('perfume_shop.db');
 
 // Create USER table
@@ -8,7 +9,7 @@ CREATE TABLE IF NOT EXISTS USER (
     NAME TEXT NOT NULL,
     EMAIL TEXT UNIQUE NOT NULL,
     PASSWORD TEXT NOT NULL,
-    ISADMIN INT
+    ISADMIN INT DEFAULT 0
 )`;
 
 // Create PERFUME table with CATEGORY and IMAGE_URL columns
@@ -31,9 +32,11 @@ CREATE TABLE IF NOT EXISTS PURCHASES (
     USER_ID INT NOT NULL,
     PERFUME_ID INT NOT NULL,
     QUANTITY INT NOT NULL,
+    DATE TEXT DEFAULT CURRENT_TIMESTAMP,  -- Ensure Date Exists
     FOREIGN KEY (USER_ID) REFERENCES USER(ID),
     FOREIGN KEY (PERFUME_ID) REFERENCES PERFUME(ID)
 )`;
+
 
 // Create CART table
 const createCartTable = `
@@ -47,30 +50,54 @@ CREATE TABLE IF NOT EXISTS CART (
 );
 `;
 
-// Initialize tables
 db.serialize(() => {
-  // Create USER table
+  // Create tables
   db.run(createUserTable, (err) => {
     if (err) console.error('Error creating USER table:', err.message);
     else console.log('USER table created or already exists.');
   });
 
-  // Create PERFUME table
   db.run(createPerfumeTable, (err) => {
     if (err) console.error('Error creating PERFUME table:', err.message);
     else console.log('PERFUME table created or already exists.');
   });
 
-  // Create PURCHASES table
   db.run(createPurchaseTable, (err) => {
     if (err) console.error('Error creating PURCHASES table:', err.message);
     else console.log('PURCHASES table created or already exists.');
   });
 
-  // Create CART table
   db.run(createCartTable, (err) => {
     if (err) console.error('Error creating CART table:', err.message);
     else console.log('CART table created or already exists.');
+  });
+
+  db.get(`SELECT COUNT(*) AS count FROM USER WHERE ISADMIN = 1`, (err, row) => {
+    if (err) {
+      console.error('Error checking admin users:', err.message);
+    } else if (row.count === 0) {
+      // Insert a default admin user
+      const adminEmail = 'ahmedkhalednabil2004@gmail.com';
+      const adminPassword = 'ahmed123'; 
+
+      bcrypt.hash(adminPassword, 10, (err, hashedPassword) => {
+        if (err) {
+          console.error('Error hashing admin password:', err.message);
+        } else {
+          db.run(
+            `INSERT INTO USER (NAME, EMAIL, PASSWORD, ISADMIN) VALUES (?, ?, ?, ?)`,
+            ['Admin User', adminEmail, hashedPassword, 1],
+            (err) => {
+              if (err) {
+                console.error('Error inserting admin user:', err.message);
+              } else {
+                console.log(`Admin user created with email: ${adminEmail}`);
+              }
+            }
+          );
+        }
+      });
+    }
   });
 
   // Check if PERFUME table is empty before inserting sample data
@@ -89,7 +116,6 @@ db.serialize(() => {
   ('Black opium', 'Brand E', 39.99, 'A vanilla-based warm scent for women', 10, 'women', 'https://th.bing.com/th/id/OIP.l953iTQUC8iixl3ku2XsEQHaHa?rs=1&pid=ImgDetMain'),
   ('Tom-Ford-Tobacco-Vanille', 'Brand F', 55.99, 'A refreshing aquatic fragrance for women', 7, 'women', 'https://perfumestuff.com/wp-content/uploads/2022/02/Tom-Ford-Tobacco-Vanille-EDP-For-Women-100ml.jpg');
 `;
-
 
       db.run(samplePerfumesQuery, (err) => {
         if (err) {

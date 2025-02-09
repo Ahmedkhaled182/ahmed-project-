@@ -19,7 +19,7 @@
   box-shadow: 0 4px 10px rgba(218, 15, 15, 0.1);
   padding: 20px;
   text-align: center;
-  transition: transform 0.2s; /* hover effect */
+  transition: transform 0.10s; /* hover effect */
 }
 
 .product-card:hover {

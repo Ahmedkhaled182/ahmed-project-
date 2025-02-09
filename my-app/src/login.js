@@ -1,27 +1,47 @@
-import './login.css';
 import React, { useState } from 'react';
-import axios from 'axios';
+import './login.css';
 
 function Login({ navigateTo, onLoginSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!email || !password) {
       setErrorMessage('Both fields are required');
       return;
     }
 
     try {
-      const response = await axios.post('http://localhost:555/user/login', { email, password });
-      console.log('Login successful:', response.data); // Log the response for debugging
-      onLoginSuccess(); // Notify App that login was successful
+      const response = await fetch('http://localhost:555/user/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include', // 🔥 Ensures cookies (authToken) are sent & stored
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Error logging in');
+      }
+
+      const data = await response.json();
+      
+      // ✅ Store authentication flag & admin status
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('isAdmin', data.isAdmin ? 'true' : 'false');
+
+      // 🔥 Debugging - Check if cookies are stored
+      console.log('Login Successful - Cookies should be set');
+
+      // ✅ Call success callback & navigate home
+      onLoginSuccess();
+      navigateTo('home');
     } catch (error) {
-      setErrorMessage(error.response ? error.response.data : 'Error logging in');
-      console.log('Error during login:', error); // Log the error for debugging
+      console.error('Login Error:', error.message);
+      setErrorMessage(error.message);
     }
   };
 
@@ -31,40 +51,30 @@ function Login({ navigateTo, onLoginSuccess }) {
       <div className="login-container">
         <h2>Login</h2>
         {errorMessage && <p className="error-message">{errorMessage}</p>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email:</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="password">Password:</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="login-button">Login</button>
-        </form>
+        <div className="form-group">
+          <label>Email:</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(input) => setEmail(input.target.value)}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label>Password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(input) => setPassword(input.target.value)}
+            required
+          />
+        </div>
+        <button className="login-button" onClick={handleSubmit}>
+          Login
+        </button>
         <p className="text">
           Don't have an account?{' '}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              navigateTo('signup'); // Switch to the signup page
-            }}
-            className="link"
-          >
+          <button className="link" onClick={() => navigateTo('signup')}>
             Sign-up
           </button>
         </p>

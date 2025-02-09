@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import './women.css';
 
 function WomenProducts({ userId }) {
   const [products, setProducts] = useState([]);
 
   // Fetch products on component mount
-  useEffect(() => {
+  useState(() => {
     fetch('http://localhost:555/products?category=women') 
       .then((response) => response.json())
       .then((data) => setProducts(data))

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import './signup.css';
 
 function SignUp({ navigateTo }) {
@@ -10,35 +9,44 @@ function SignUp({ navigateTo }) {
   });
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleChange = (input) => {
     setFormData({
       ...formData,
-      [name]: value,
+      [input.target.name]: input.target.value,
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     try {
-      await axios.post('http://localhost:555/user/register', formData);
-      console.log('Registration successful');
-      navigateTo('login'); // Redirect to login page after signup
+      const response = await fetch('http://localhost:555/user/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        navigateTo('login');
+      } else {
+        const errorData = await response.text();
+        setErrorMessage(errorData || 'Error registering');
+      }
     } catch (error) {
-      setErrorMessage(error.response ? error.response.data : 'Error registering');
-      console.log('Error during signup:', error);
+      console.error('Error during signup:', error);
+      setErrorMessage('Error registering');
     }
   };
+
 
   return (
     <div className="sign-up-container">
       <h2>Sign Up</h2>
-      <form onSubmit={handleSubmit} className="sign-up-form">
+      <div className="sign-up-form">
         <div className="form-group">
-          <label htmlFor="name">Name</label>
+          <label>Name</label>
           <input
             type="text"
-            id="name"
             name="name"
             value={formData.name}
             onChange={handleChange}
@@ -46,10 +54,9 @@ function SignUp({ navigateTo }) {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="email">Email</label>
+          <label>Email</label>
           <input
             type="email"
-            id="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
@@ -57,28 +64,23 @@ function SignUp({ navigateTo }) {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="password">Password</label>
+          <label>Password</label>
           <input
             type="password"
-            id="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
             required
           />
         </div>
-        <button type="submit" className="submit-button">Sign Up</button>
+        <button className="submit-button" onClick={handleSubmit}>
+          Sign Up
+        </button>
         {errorMessage && <p className="error">{errorMessage}</p>}
-      </form>
+      </div>
       <p className="text">
         Already have an account?{' '}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            navigateTo('login'); // Switch to the login page
-          }}
-          className="link"
-        >
+        <button className="link" onClick={() => navigateTo('login')}>
           Go to Login
         </button>
       </p>
